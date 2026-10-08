@@ -1,4 +1,5 @@
 FROM alpine:3.20
+RUN apk add --no-cache busybox-extras
 RUN printf '%s\n' \
 '#!/bin/sh' \
 'OUT=/www/index.html' \
